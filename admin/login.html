@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>تسجيل الدخول — لوحة الإدارة</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ink: #1a1512; --gold: #b8913a; --gold-lt: #d4a853;
+      --sand: #f5f0e8; --cream: #faf8f4; --border: #e8e0d4;
+      --error: #c0392b; --font-ar: 'Cairo', sans-serif;
+    }
+    html, body { height: 100%; font-family: var(--font-ar); background: var(--cream); }
+    body {
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px; min-height: 100vh;
+    }
+    .login-card {
+      background: white; border-radius: 20px;
+      padding: 40px 36px; width: 100%; max-width: 400px;
+      box-shadow: 0 16px 60px rgba(26,21,18,.12);
+    }
+    .login-logo {
+      text-align: center; margin-bottom: 32px;
+    }
+    .login-logo-icon {
+      width: 64px; height: 64px; background: var(--gold);
+      border-radius: 16px; margin: 0 auto 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem;
+    }
+    .login-logo h1 { font-size: 1.4rem; font-weight: 900; color: var(--ink); }
+    .login-logo p { font-size: .82rem; color: #888; margin-top: 4px; }
+    .field-label { font-size: .82rem; font-weight: 600; color: var(--ink); margin-bottom: 6px; display: block; }
+    .field-wrap { margin-bottom: 18px; }
+    input[type=email], input[type=password] {
+      width: 100%; padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px; font-family: var(--font-ar);
+      font-size: .92rem; outline: none; direction: ltr;
+      transition: border-color .2s;
+    }
+    input:focus { border-color: var(--gold-lt); }
+    .btn-login {
+      width: 100%; padding: 14px;
+      background: var(--gold); color: white;
+      font-family: var(--font-ar); font-size: 1rem; font-weight: 700;
+      border: none; border-radius: 12px; cursor: pointer;
+      transition: background .2s;
+    }
+    .btn-login:hover { background: #8a6a28; }
+    .btn-login:disabled { background: #ccc; cursor: not-allowed; }
+    #error-msg {
+      background: #fdf0ee; border: 1px solid #f5c6c6;
+      color: var(--error); border-radius: 8px;
+      padding: 10px 14px; font-size: .84rem;
+      margin-bottom: 16px; display: none;
+    }
+    .back-link {
+      display: block; text-align: center; margin-top: 20px;
+      font-size: .82rem; color: #888; text-decoration: none;
+    }
+    .back-link:hover { color: var(--gold); }
+    .spinner {
+      display: none; width: 20px; height: 20px;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: white; border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">👔</div>
+      <h1>لوحة الإدارة</h1>
+      <p>سجّل دخولك لإدارة المتجر</p>
+    </div>
+
+    <div id="error-msg"></div>
+
+    <div class="field-wrap">
+      <label class="field-label">البريد الإلكتروني</label>
+      <input type="email" id="email-input" placeholder="admin@store.com" />
+    </div>
+    <div class="field-wrap">
+      <label class="field-label">كلمة المرور</label>
+      <input type="password" id="pass-input" placeholder="••••••••" />
+    </div>
+
+    <button class="btn-login" id="login-btn" onclick="doLogin()">
+      <span id="btn-text">دخول</span>
+      <div class="spinner" id="btn-spinner"></div>
+    </button>
+
+    <a class="back-link" href="../">← العودة للمتجر</a>
+  </div>
+
+  <script src="../js/firebase-config.js"></script>
+  <script>
+    const { auth } = initFirebase();
+
+    // Already logged in? redirect
+    auth.onAuthStateChanged(user => {
+      if (user) window.location.href = 'index.html';
+    });
+
+    function doLogin() {
+      const email = document.getElementById('email-input').value.trim();
+      const pass  = document.getElementById('pass-input').value;
+      const errEl = document.getElementById('error-msg');
+      errEl.style.display = 'none';
+
+      if (!email || !pass) {
+        errEl.textContent = 'يرجى إدخال البريد الإلكتروني وكلمة المرور';
+        errEl.style.display = 'block'; return;
+      }
+
+      document.getElementById('btn-text').style.display = 'none';
+      document.getElementById('btn-spinner').style.display = 'block';
+      document.getElementById('login-btn').disabled = true;
+
+      auth.signInWithEmailAndPassword(email, pass)
+        .then(() => window.location.href = 'index.html')
+        .catch(err => {
+          let msg = 'فشل تسجيل الدخول، تحقق من بياناتك';
+          if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+            msg = 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
+          } else if (err.code === 'auth/too-many-requests') {
+            msg = 'تم تجاوز عدد المحاولات المسموح به، حاول لاحقاً';
+          }
+          errEl.textContent = msg; errEl.style.display = 'block';
+          document.getElementById('btn-text').style.display = 'block';
+          document.getElementById('btn-spinner').style.display = 'none';
+          document.getElementById('login-btn').disabled = false;
+        });
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  </script>
+</body>
+</html>
